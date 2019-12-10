@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/MathisDetourbet/bookstore_users-api/app/utils/errors"
 	"github.com/MathisDetourbet/bookstore_users-api/domain/users"
 	"github.com/MathisDetourbet/bookstore_users-api/services"
+	"github.com/MathisDetourbet/bookstore_users-api/utils/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,11 +21,11 @@ func CreateUser(c *gin.Context) {
 	result, saveErr := services.CreateUser(user)
 	if saveErr != nil {
 		c.JSON(saveErr.Status, saveErr)
-		//TODO: handle user create error
 		return
 	}
 	c.JSON(http.StatusCreated, result)
 }
+
 func GetUser(c *gin.Context) {
 	userID, userErr := strconv.ParseInt(c.Param("user_id"), 10, 64)
 	if userErr != nil {

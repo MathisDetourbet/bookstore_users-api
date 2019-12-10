@@ -3,7 +3,7 @@ package users
 import (
 	"strings"
 
-	"github.com/MathisDetourbet/bookstore_users-api/app/utils/errors"
+	"github.com/MathisDetourbet/bookstore_users-api/utils/errors"
 )
 
 type User struct {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	_ "github.com/MathisDetourbet/bookstore_users-api/config"
 	"github.com/gin-gonic/gin"
 )
 
