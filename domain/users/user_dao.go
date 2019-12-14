@@ -2,17 +2,18 @@ package users
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/MathisDetourbet/bookstore_users-api/datasources/mysql/users_db"
-	"github.com/MathisDetourbet/bookstore_users-api/utils/date"
 	"github.com/MathisDetourbet/bookstore_users-api/utils/errors"
 )
 
 const (
-	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created, date_updated) VALUES(?, ?, ?, ?, ?);"
-	queryGetUser    = "SELECT id, first_name, last_name, email, date_created, date_updated FROM users WHERE id=?;"
-	queryUpdateUser = "UPDATE users SET first_name=?, last_name=?, email=?, date_updated=? WHERE id=?;"
-	queryDeleteUser = "DELETE FROM users WHERE id=?;"
+	queryInsertUser       = "INSERT INTO users(first_name, last_name, email, date_created, date_updated, status, password) VALUES(?, ?, ?, ?, ?, ?, ?);"
+	queryGetUser          = "SELECT id, first_name, last_name, email, date_created, date_updated, status FROM users WHERE id=?;"
+	queryUpdateUser       = "UPDATE users SET first_name=?, last_name=?, email=?, date_updated=? WHERE id=?;"
+	queryDeleteUser       = "DELETE FROM users WHERE id=?;"
+	queryFindUserByStatus = "SELECT id, first_name, last_name, email, date_created, date_updated, status FROM users WHERE status=?;"
 )
 
 // Get a user from the database
@@ -24,7 +25,7 @@ func (user *User) Get() *errors.RestErr {
 	defer stmt.Close()
 
 	getResult := stmt.QueryRow(user.ID)
-	if getErr := getResult.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.DateUpdated); getErr != nil {
+	if getErr := getResult.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.DateUpdated, &user.Status); getErr != nil {
 		return errors.ParseError(getErr)
 	}
 	return nil
@@ -38,11 +39,9 @@ func (user *User) Save() *errors.RestErr {
 	}
 	defer stmt.Close()
 
-	user.DateCreated = date.GetNowString()
-	user.DateUpdated = user.DateCreated
-
-	insertResult, saveErr := stmt.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated, user.DateUpdated)
+	insertResult, saveErr := stmt.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated, user.DateUpdated, user.Status, user.Password)
 	if saveErr != nil {
+		log.Println(saveErr.Error())
 		return errors.ParseError(saveErr)
 	}
 
@@ -62,8 +61,6 @@ func (user *User) Update() *errors.RestErr {
 	}
 	defer stmt.Close()
 
-	user.DateUpdated = date.GetNowString()
-
 	_, updateErr := stmt.Exec(user.FirstName, user.LastName, user.Email, user.DateUpdated, user.ID)
 	if updateErr != nil {
 		return errors.ParseError(updateErr)
@@ -75,6 +72,7 @@ func (user *User) Update() *errors.RestErr {
 	return nil
 }
 
+// Delete a user in the database by its id
 func (user *User) Delete() *errors.RestErr {
 	stmt, err := users_db.Client.Prepare(queryDeleteUser)
 	if err != nil {
@@ -86,4 +84,29 @@ func (user *User) Delete() *errors.RestErr {
 		return errors.ParseError(deleteErr)
 	}
 	return nil
+}
+
+// FindByStatus is finding a user by its status
+func (user *User) FindByStatus(status string) ([]User, *errors.RestErr) {
+	stmt, err := users_db.Client.Prepare(queryFindUserByStatus)
+	if err != nil {
+		return nil, errors.NewInternalServerError(err.Error())
+	}
+	defer stmt.Close()
+
+	rows, findErr := stmt.Query(status)
+	if findErr != nil {
+		return nil, errors.ParseError(findErr)
+	}
+	defer rows.Close()
+
+	results := make([]User, 0)
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.DateUpdated, &user.Status); err != nil {
+			return nil, errors.ParseError(err)
+		}
+		results = append(results, user)
+	}
+	return results, nil
 }

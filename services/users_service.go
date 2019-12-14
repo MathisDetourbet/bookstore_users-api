@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/MathisDetourbet/bookstore_users-api/domain/users"
+	"github.com/MathisDetourbet/bookstore_users-api/utils/date"
 	"github.com/MathisDetourbet/bookstore_users-api/utils/errors"
 )
 
@@ -19,6 +20,10 @@ func CreateUser(user users.User) (*users.User, *errors.RestErr) {
 	if err := user.Validate(); err != nil {
 		return nil, err
 	}
+
+	user.Status = users.StatusActive
+	user.DateCreated = date.GetNowDBFormat()
+	user.DateUpdated = user.DateCreated
 
 	if err := user.Save(); err != nil {
 		return nil, err
@@ -43,19 +48,31 @@ func UpdateUser(isPartial bool, user *users.User) (*users.User, *errors.RestErr)
 		if user.Email != "" {
 			currentUser.Email = user.Email
 		}
+		if user.Password != "" {
+			currentUser.Password = user.Password
+		}
 	} else {
 		currentUser.FirstName = user.FirstName
 		currentUser.LastName = user.LastName
 		currentUser.Email = user.Email
+		currentUser.Password = user.Password
 	}
 
+	currentUser.DateUpdated = date.GetNowDBFormat()
 	if err := currentUser.Update(); err != nil {
 		return nil, err
 	}
 	return currentUser, nil
 }
 
+// DeleteUser contains the logic of deleting a single user in the database by giving an user ID
 func DeleteUser(userID int64) *errors.RestErr {
 	user := &users.User{ID: userID}
 	return user.Delete()
+}
+
+// Search function contains the logic of finding a user by its status field
+func Search(status string) ([]users.User, *errors.RestErr) {
+	dao := &users.User{}
+	return dao.FindByStatus(status)
 }
