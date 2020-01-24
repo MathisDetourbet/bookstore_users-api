@@ -19,6 +19,11 @@ func getUserID(userIDParam string) (int64, *errors.RestErr) {
 	return userID, nil
 }
 
+const (
+	requestParamUserID     = "user_id"
+	requestParamUserStatus = "status"
+)
+
 func CreateUser(c *gin.Context) {
 	var user users.User
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -37,11 +42,11 @@ func CreateUser(c *gin.Context) {
 	uri := fmt.Sprintf("/users/%d", result.ID)
 	c.Writer.Header().Add("Location", uri)
 
-	c.JSON(http.StatusCreated, result)
+	c.JSON(http.StatusCreated, result.Marshall(c.GetHeader("X-Public") == "true"))
 }
 
 func GetUser(c *gin.Context) {
-	userID, idErr := getUserID(c.Param("user_id"))
+	userID, idErr := getUserID(c.Param(requestParamUserID))
 	if idErr != nil {
 		c.JSON(idErr.Status, idErr.Message)
 		return
@@ -52,11 +57,11 @@ func GetUser(c *gin.Context) {
 		c.JSON(getErr.Status, getErr)
 		return
 	}
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, user.Marshall(c.GetHeader("X-Public") == "true"))
 }
 
 func UpdateUser(c *gin.Context) {
-	userID, idErr := getUserID(c.Param("user_id"))
+	userID, idErr := getUserID(c.Param(requestParamUserID))
 	if idErr != nil {
 		c.JSON(idErr.Status, idErr.Message)
 		return
@@ -82,12 +87,12 @@ func UpdateUser(c *gin.Context) {
 	if isPartial {
 		c.JSON(http.StatusOK, nil)
 	} else {
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusOK, result.Marshall(c.GetHeader("X-Public") == "true"))
 	}
 }
 
 func DeleteUser(c *gin.Context) {
-	userID, idErr := getUserID(c.Param("user_id"))
+	userID, idErr := getUserID(c.Param(requestParamUserID))
 	if idErr != nil {
 		c.JSON(idErr.Status, idErr.Message)
 		return
@@ -101,12 +106,13 @@ func DeleteUser(c *gin.Context) {
 }
 
 func Search(c *gin.Context) {
-	status := c.Query("status")
+	status := c.Query(requestParamUserStatus)
 
 	users, err := services.Search(status)
 	if err != nil {
 		c.JSON(err.Status, err)
 		return
 	}
-	c.JSON(http.StatusOK, users)
+
+	c.JSON(http.StatusOK, users.Marshall(c.GetHeader("X-Public") == "true"))
 }

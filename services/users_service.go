@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/MathisDetourbet/bookstore_users-api/domain/users"
+	"github.com/MathisDetourbet/bookstore_users-api/utils/crypto"
 	"github.com/MathisDetourbet/bookstore_users-api/utils/date"
 	"github.com/MathisDetourbet/bookstore_users-api/utils/errors"
 )
@@ -24,6 +25,7 @@ func CreateUser(user users.User) (*users.User, *errors.RestErr) {
 	user.Status = users.StatusActive
 	user.DateCreated = date.GetNowDBFormat()
 	user.DateUpdated = user.DateCreated
+	user.Password = crypto.GetMd5(user.Password)
 
 	if err := user.Save(); err != nil {
 		return nil, err
@@ -72,7 +74,7 @@ func DeleteUser(userID int64) *errors.RestErr {
 }
 
 // Search function contains the logic of finding a user by its status field
-func Search(status string) ([]users.User, *errors.RestErr) {
+func Search(status string) (users.Users, *errors.RestErr) {
 	dao := &users.User{}
 	return dao.FindByStatus(status)
 }
